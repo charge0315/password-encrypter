@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Google Password Checkupで検出された漏洩パスワードを自動変更するエージェント">
+  <title>🔐 Password Auto-Change Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header__inner">
+      <div class="header__brand">
+        <div class="header__logo">🔐</div>
+        <div>
+          <h1 class="header__title">Password Agent</h1>
+          <p class="header__subtitle">Auto-Change Agent</p>
+        </div>
+      </div>
+      <div class="header__actions">
+        <button class="btn btn--ghost" id="btn-export" disabled>
+          <span class="btn__icon">📤</span> CSVエクスポート
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+    <!-- Step Indicator -->
+    <nav class="steps" id="steps-nav">
+      <div class="step active" data-step="1">
+        <div class="step__number">1</div>
+        <div class="step__label">CSV インポート</div>
+      </div>
+      <div class="step__connector"></div>
+      <div class="step" data-step="2">
+        <div class="step__number">2</div>
+        <div class="step__label">漏洩チェック</div>
+      </div>
+      <div class="step__connector"></div>
+      <div class="step" data-step="3">
+        <div class="step__number">3</div>
+        <div class="step__label">パスワード生成</div>
+      </div>
+      <div class="step__connector"></div>
+      <div class="step" data-step="4">
+        <div class="step__number">4</div>
+        <div class="step__label">自動変更</div>
+      </div>
+    </nav>
+
+    <!-- Step 1: CSV Upload -->
+    <section class="panel" id="panel-upload">
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-zone__icon">📁</div>
+        <h2 class="upload-zone__title">CSVファイルをドロップ</h2>
+        <p class="upload-zone__desc">Google Password Managerからエクスポートしたパスワードファイルをここにドラッグ&ドロップ、またはクリックして選択</p>
+        <input type="file" id="csv-input" accept=".csv" hidden>
+        <button class="btn btn--primary" id="btn-select-file">
+          <span class="btn__icon">📂</span> ファイルを選択
+        </button>
+      </div>
+      <div class="upload-zone__help">
+        <details>
+          <summary>📖 CSVのエクスポート方法</summary>
+          <ol>
+            <li><a href="https://passwords.google.com" target="_blank" rel="noopener">passwords.google.com</a> にアクセス</li>
+            <li><strong>設定</strong>（歯車アイコン）→ <strong>パスワードをエクスポート</strong></li>
+            <li>OS認証を通過してCSVをダウンロード</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+
+    <!-- Stats Cards -->
+    <section class="stats" id="stats" hidden>
+      <div class="stat-card stat-card--total" id="stat-total">
+        <div class="stat-card__icon">📋</div>
+        <div class="stat-card__value" id="stat-total-value">0</div>
+        <div class="stat-card__label">合計アカウント</div>
+      </div>
+      <div class="stat-card stat-card--danger" id="stat-compromised">
+        <div class="stat-card__icon">⚠️</div>
+        <div class="stat-card__value" id="stat-compromised-value">0</div>
+        <div class="stat-card__label">漏洩検出</div>
+      </div>
+      <div class="stat-card stat-card--success" id="stat-safe">
+        <div class="stat-card__icon">✅</div>
+        <div class="stat-card__value" id="stat-safe-value">0</div>
+        <div class="stat-card__label">安全</div>
+      </div>
+      <div class="stat-card stat-card--info" id="stat-changed">
+        <div class="stat-card__icon">🔄</div>
+        <div class="stat-card__value" id="stat-changed-value">0</div>
+        <div class="stat-card__label">変更済み</div>
+      </div>
+    </section>
+
+    <!-- Action Bar -->
+    <section class="action-bar" id="action-bar" hidden>
+      <div class="action-bar__left">
+        <button class="btn btn--primary" id="btn-check-breaches" disabled>
+          <span class="btn__icon">🔍</span> 漏洩チェック
+        </button>
+        <button class="btn btn--accent" id="btn-generate-passwords" disabled>
+          <span class="btn__icon">🎲</span> パスワード生成
+        </button>
+        <button class="btn btn--danger" id="btn-execute-changes" disabled>
+          <span class="btn__icon">🤖</span> 一括変更実行
+        </button>
+      </div>
+      <div class="action-bar__right">
+        <div class="filter-group">
+          <label class="filter-label">フィルタ:</label>
+          <select id="filter-status" class="select">
+            <option value="all">すべて</option>
+            <option value="compromised">漏洩のみ</option>
+            <option value="safe">安全のみ</option>
+            <option value="unchecked">未チェック</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Entry Table -->
+    <section class="table-container" id="table-container" hidden>
+      <table class="table" id="entries-table">
+        <thead>
+          <tr>
+            <th class="table__check"><input type="checkbox" id="check-all"></th>
+            <th>サイト</th>
+            <th>ユーザー名</th>
+            <th>現在のパスワード</th>
+            <th>漏洩状況</th>
+            <th>モード</th>
+            <th>新パスワード</th>
+            <th>変更状況</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="entries-tbody">
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Progress Modal -->
+    <div class="modal-overlay" id="modal-progress" hidden>
+      <div class="modal">
+        <div class="modal__header">
+          <h2 class="modal__title" id="modal-title">処理中...</h2>
+        </div>
+        <div class="modal__body">
+          <div class="progress-bar" id="progress-bar">
+            <div class="progress-bar__fill" id="progress-fill" style="width: 0%"></div>
+          </div>
+          <p class="progress-text" id="progress-text">準備中...</p>
+          <div class="progress-log" id="progress-log"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

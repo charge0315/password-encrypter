@@ -1,0 +1,29 @@
+{
+  "name": "password-auto-change-agent",
+  "version": "1.0.0",
+  "description": "Google Password Checkupで検出された漏洩パスワードを自動変更するエージェント",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "cli": "tsx src/index.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "playwright": "^1.49.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

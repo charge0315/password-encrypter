@@ -1,0 +1,17 @@
+# Dependencies / build outputs
+node_modules/
+dist/
+coverage/
+
+# Local environment files
+.env
+.env.*
+.env.example
+
+# Local data / secrets / exports
+data/
+*.encrypted
+*.csv
+
+# Logs
+*.log

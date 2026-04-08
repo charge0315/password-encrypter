@@ -1,0 +1,56 @@
+{
+  "site": "amazon.co.jp",
+  "displayName": "Amazon Japan",
+  "requiresLogin": true,
+  "loginUrl": "https://www.amazon.co.jp/ap/signin",
+  "changePasswordUrl": "https://www.amazon.co.jp/gp/css/account/info/view.html",
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://www.amazon.co.jp/gp/css/account/info/view.html"
+    },
+    {
+      "action": "pause",
+      "ms": 2000
+    },
+    {
+      "action": "click",
+      "selector": "a[id*='password'], a[href*='password'], #auth-cnep-edit-password-button"
+    },
+    {
+      "action": "pause",
+      "ms": 2000
+    },
+    {
+      "action": "fill",
+      "selector": "#ap_password, input[name='password']",
+      "value": "{{old_password}}"
+    },
+    {
+      "action": "fill",
+      "selector": "#ap_password_new, input[name='passwordNew']",
+      "value": "{{new_password}}"
+    },
+    {
+      "action": "fill",
+      "selector": "#ap_password_new_check, input[name='passwordNewCheck']",
+      "value": "{{new_password}}"
+    },
+    {
+      "action": "click",
+      "selector": "#cnep_1D_submit_button, input[type='submit'], button[type='submit']"
+    },
+    {
+      "action": "pause",
+      "ms": 3000
+    },
+    {
+      "action": "screenshot",
+      "name": "amazon-password-changed"
+    }
+  ],
+  "passwordConstraints": {
+    "minLength": 6,
+    "maxLength": 128
+  }
+}

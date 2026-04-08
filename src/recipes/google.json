@@ -1,0 +1,59 @@
+{
+  "site": "accounts.google.com",
+  "displayName": "Google",
+  "requiresLogin": true,
+  "loginUrl": "https://accounts.google.com/signin",
+  "changePasswordUrl": "https://myaccount.google.com/signinoptions/password",
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://myaccount.google.com/signinoptions/password"
+    },
+    {
+      "action": "pause",
+      "ms": 2000
+    },
+    {
+      "action": "fill",
+      "selector": "input[type='password'][name='password'], input[type='password'][aria-label*='現在'], input[type='password']:first-of-type",
+      "value": "{{old_password}}"
+    },
+    {
+      "action": "click",
+      "selector": "button[type='submit'], button[jsname], div[role='button']"
+    },
+    {
+      "action": "pause",
+      "ms": 2000
+    },
+    {
+      "action": "fill",
+      "selector": "input[type='password'][name='newPassword'], input[type='password'][aria-label*='新しい'], input[name='Passwd']",
+      "value": "{{new_password}}"
+    },
+    {
+      "action": "fill",
+      "selector": "input[type='password'][name='confirmPassword'], input[type='password'][aria-label*='確認'], input[name='PasswdAgain']",
+      "value": "{{new_password}}"
+    },
+    {
+      "action": "click",
+      "selector": "button[type='submit'], button[jsname]"
+    },
+    {
+      "action": "pause",
+      "ms": 3000
+    },
+    {
+      "action": "screenshot",
+      "name": "google-password-changed"
+    }
+  ],
+  "passwordConstraints": {
+    "minLength": 8,
+    "requireUppercase": true,
+    "requireLowercase": true,
+    "requireDigits": true,
+    "requireSymbols": false
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SiteRecipe",
+  "description": "サイトごとのパスワード変更手順レシピ",
+  "type": "object",
+  "required": ["site", "displayName", "requiresLogin", "changePasswordUrl", "steps"],
+  "properties": {
+    "site": {
+      "type": "string",
+      "description": "対象サイトのドメイン名"
+    },
+    "displayName": {
+      "type": "string",
+      "description": "表示名"
+    },
+    "requiresLogin": {
+      "type": "boolean",
+      "description": "ログインが必要かどうか"
+    },
+    "loginUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "ログインURL"
+    },
+    "changePasswordUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "パスワード変更ページのURL"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["goto", "fill", "click", "waitForText", "waitForSelector", "waitForNavigation", "screenshot", "pause", "pressKey"]
+          },
+          "url": { "type": "string" },
+          "selector": { "type": "string" },
+          "value": { "type": "string" },
+          "text": { "type": "string" },
+          "name": { "type": "string" },
+          "key": { "type": "string" },
+          "ms": { "type": "number" },
+          "timeout": { "type": "number" }
+        }
+      }
+    },
+    "passwordConstraints": {
+      "type": "object",
+      "properties": {
+        "minLength": { "type": "number" },
+        "maxLength": { "type": "number" },
+        "requireUppercase": { "type": "boolean" },
+        "requireLowercase": { "type": "boolean" },
+        "requireDigits": { "type": "boolean" },
+        "requireSymbols": { "type": "boolean" },
+        "allowedSymbols": { "type": "string" },
+        "excludeChars": { "type": "string" }
+      }
+    }
+  }
+}
