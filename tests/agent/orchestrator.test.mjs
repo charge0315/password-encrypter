@@ -96,3 +96,27 @@ test('executeBatchChange marks manual handoff as skipped and keeps the generated
   assert.equal(entry.changeStatus, 'skipped');
   assert.equal(entry.errorMessage?.includes('手動対応'), true);
 });
+
+test('completeManualChange marks a skipped entry as success and applies the generated password', () => {
+  const orchestrator = new Orchestrator();
+
+  orchestrator.setEntries([
+    createEntry({
+      id: 'entry-3',
+      password: 'before-manual',
+      newPassword: 'after-manual',
+      changeStatus: 'skipped',
+      errorMessage: '手動対応に切り替えました。',
+    }),
+  ]);
+
+  const result = orchestrator.completeManualChange('entry-3');
+  const [entry] = orchestrator.getEntries();
+
+  assert.equal(result.method, 'manual');
+  assert.equal(result.success, true);
+  assert.equal(entry.password, 'after-manual');
+  assert.equal(entry.newPassword, undefined);
+  assert.equal(entry.changeStatus, 'success');
+  assert.equal(entry.errorMessage, undefined);
+});

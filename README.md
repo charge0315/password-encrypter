@@ -105,6 +105,7 @@ CLI では対話形式で次を順に確認しながら進めます。
 | `POST` | `/api/generate-passwords` | 一括で新しいパスワードを生成 |
 | `POST` | `/api/generate-password` | 単一エントリ向けに新しいパスワードを生成して保持 |
 | `POST` | `/api/execute-changes` | 指定エントリのパスワード変更を実行 |
+| `POST` | `/api/manual-complete` | 手動で変更したエントリを変更済みとして反映 |
 | `GET` | `/api/export-csv` | 更新済み CSV をダウンロード |
 | `POST` | `/api/check-strength` | パスワード強度を評価 |
 | `GET` | `/api/recipes` | 読み込み済みレシピ一覧を返す |
@@ -114,6 +115,7 @@ CLI では対話形式で次を順に確認しながら進めます。
 
 - `/api/entries` や `/api/generate-password` などのレスポンスでは、実パスワードの代わりにマスク済みの値を返します。
 - Web UI は単一の `Orchestrator` インスタンスを共有する簡易構成です。
+- 手動対応に切り替わったエントリは、Web UI の `完了` ボタンで `変更済み` に反映できます。
 
 ## レシピの扱い
 

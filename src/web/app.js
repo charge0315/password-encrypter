@@ -338,9 +338,15 @@ function renderTable() {
       }</td>
       <td>${renderStatusBadge(entry)}</td>
       <td>
-        <button class="btn btn--ghost btn--sm" onclick="regeneratePassword('${entry.id}')">
-          🎲
-        </button>
+        <div class="cell-actions">
+          <button class="btn btn--ghost btn--sm" onclick="regeneratePassword('${entry.id}')">
+            🎲
+          </button>
+          ${entry.changeStatus === 'skipped'
+            ? `<button class="btn btn--success btn--sm" onclick="completeManualChange('${entry.id}')">✅ 完了</button>`
+            : ''
+          }
+        </div>
       </td>
     </tr>
   `).join('');
@@ -362,7 +368,7 @@ function renderWorkflowNotice() {
     dom.workflowNoticeEyebrow.textContent = 'Manual Handoff';
     dom.workflowNoticeTitle.textContent = '手動対応が必要なアカウントがあります';
     dom.workflowNoticeText.textContent =
-      '自動変更できなかったサイトはブラウザで変更し、完了後に開いたタブを閉じてください。新しいパスワードは保持されたままなので、そのまま再確認できます。';
+      '自動変更できなかったサイトはブラウザで変更し、完了後に一覧の「完了」ボタンで反映してください。新しいパスワードは保持されたままなので、そのまま再確認できます。';
     dom.workflowNoticeList.innerHTML = manualEntries
       .map((entry) => `
         <div class="workflow-notice__item">
@@ -461,6 +467,38 @@ async function regeneratePassword(entryId) {
     showToast('🎲 新しいパスワードを生成しました', 'success');
   } catch (err) {
     showToast(`エラー: ${err.message}`, 'error');
+  }
+}
+
+async function completeManualChange(entryId) {
+  const entry = state.entries.find((item) => item.id === entryId);
+  if (!entry) {
+    showToast('対象アカウントが見つかりません', 'error');
+    return;
+  }
+
+  const label = entry.name || entry.domain || entry.url || 'このアカウント';
+  if (!confirm(`${label} の手動変更を反映しますか？`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/manual-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    state.entries = data.entries;
+    updateStats();
+    renderTable();
+    renderWorkflowNotice();
+
+    showToast('手動変更を反映しました', 'success');
+  } catch (err) {
+    showToast(`手動反映エラー: ${err.message}`, 'error');
   }
 }
 

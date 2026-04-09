@@ -175,6 +175,28 @@ app.post('/api/execute-changes', async (req, res) => {
   }
 });
 
+/** 手動完了の反映 */
+app.post('/api/manual-complete', (req, res) => {
+  try {
+    const { entryId } = req.body || {};
+    if (!entryId) {
+      res.status(400).json({ error: 'entryId が必要です' });
+      return;
+    }
+
+    const orch = getOrchestrator();
+    const result = orch.completeManualChange(entryId);
+
+    res.json({
+      success: true,
+      result,
+      entries: orch.getEntries().map(sanitizeEntry),
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 /** CSV エクスポート */
 app.get('/api/export-csv', (_req, res) => {
   try {

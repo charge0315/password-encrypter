@@ -18,6 +18,7 @@ export type OrchestratorEvent =
   | { type: 'breach-check-complete'; compromisedCount: number }
   | { type: 'password-change-start'; entryId: string; domain: string }
   | { type: 'password-change-complete'; result: PasswordChangeResult }
+  | { type: 'manual-change-complete'; result: PasswordChangeResult }
   | { type: 'batch-complete'; results: PasswordChangeResult[] }
   | { type: 'error'; message: string };
 
@@ -249,6 +250,44 @@ export class Orchestrator {
     this.saveToStore();
 
     return results;
+  }
+
+  /**
+   * 手動で完了したパスワード変更を確定する
+   */
+  completeManualChange(entryId: string): PasswordChangeResult {
+    const entry = this.entries.find((item) => item.id === entryId);
+    if (!entry) {
+      throw new Error('対象エントリが見つかりませんでした');
+    }
+
+    if (entry.changeStatus !== 'skipped') {
+      throw new Error('手動対応待ちのエントリではありません');
+    }
+
+    if (!entry.newPassword) {
+      throw new Error('確定する新しいパスワードがありません');
+    }
+
+    const result: PasswordChangeResult = {
+      entryId: entry.id,
+      domain: extractDomain(entry.url),
+      success: true,
+      method: 'manual',
+      screenshots: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    entry.password = entry.newPassword;
+    entry.newPassword = undefined;
+    entry.changeStatus = 'success';
+    entry.errorMessage = undefined;
+
+    this.results.push(result);
+    this.emit({ type: 'manual-change-complete', result });
+    this.saveToStore();
+
+    return result;
   }
 
   /** データを暗号化ストレージに保存 */
