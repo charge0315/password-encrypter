@@ -24,6 +24,11 @@ const dom = {
   stats: $('#stats'),
   actionBar: $('#action-bar'),
   tableContainer: $('#table-container'),
+  workflowNotice: $('#workflow-notice'),
+  workflowNoticeEyebrow: $('#workflow-notice-eyebrow'),
+  workflowNoticeTitle: $('#workflow-notice-title'),
+  workflowNoticeText: $('#workflow-notice-text'),
+  workflowNoticeList: $('#workflow-notice-list'),
   entriesTbody: $('#entries-tbody'),
   filterStatus: $('#filter-status'),
   checkAll: $('#check-all'),
@@ -133,6 +138,7 @@ async function handleFileUpload(file) {
 
     updateStats();
     renderTable();
+    renderWorkflowNotice();
     setStep(2);
 
     showToast(`${data.count}件のアカウントを読み込みました`, 'success');
@@ -157,6 +163,7 @@ async function handleCheckBreaches() {
 
     updateStats();
     renderTable();
+    renderWorkflowNotice();
     setStep(2, true);
 
     dom.btnGeneratePasswords.disabled = false;
@@ -190,6 +197,7 @@ async function handleGeneratePasswords() {
     state.entries = data.entries;
     updateStats();
     renderTable();
+    renderWorkflowNotice();
     setStep(3, true);
 
     dom.btnExecuteChanges.disabled = false;
@@ -213,12 +221,19 @@ async function handleExecuteChanges() {
     return;
   }
 
-  if (!confirm(`${checked.length}件のパスワードを変更します。続行しますか？`)) {
+  const selectedEntries = state.entries.filter((entry) => checked.includes(entry.id));
+  const manualCandidates = selectedEntries.filter((entry) => !entry.hasRecipe).length;
+
+  const confirmMessage = manualCandidates > 0
+    ? `${checked.length}件のパスワードを変更します。\n\nレシピがない ${manualCandidates}件は、ブラウザで手動対応待ちになる場合があります。手動で変更したあと、そのタブを閉じると続行します。\n\n続行しますか？`
+    : `${checked.length}件のパスワードを変更します。続行しますか？`;
+
+  if (!confirm(confirmMessage)) {
     return;
   }
 
   dom.btnExecuteChanges.disabled = true;
-  showModal('パスワード変更中...', 'ブラウザを起動して自動操作します...');
+  showExecutionModal(manualCandidates);
 
   try {
     const res = await fetch('/api/execute-changes', {
@@ -235,13 +250,23 @@ async function handleExecuteChanges() {
 
     updateStats();
     renderTable();
+    renderWorkflowNotice();
     setStep(4, true);
 
     const successCount = data.results.filter((r) => r.success).length;
-    showToast(
-      `完了: ${successCount}/${data.results.length}件のパスワードを変更しました`,
-      successCount === data.results.length ? 'success' : 'info'
-    );
+    const manualCount = data.entries.filter((entry) => entry.changeStatus === 'skipped').length;
+
+    if (manualCount > 0) {
+      showToast(
+        `完了: ${successCount}件成功、${manualCount}件は手動対応待ちです`,
+        'info'
+      );
+    } else {
+      showToast(
+        `完了: ${successCount}/${data.results.length}件のパスワードを変更しました`,
+        successCount === data.results.length ? 'success' : 'info'
+      );
+    }
   } catch (err) {
     hideModal();
     dom.btnExecuteChanges.disabled = false;
@@ -321,6 +346,51 @@ function renderTable() {
   `).join('');
 }
 
+function renderWorkflowNotice() {
+  if (!state.entries.length) {
+    dom.workflowNotice.hidden = true;
+    dom.workflowNoticeList.innerHTML = '';
+    return;
+  }
+
+  const manualEntries = state.entries.filter((entry) => entry.changeStatus === 'skipped');
+  const readyEntries = state.entries.filter((entry) => entry.hasNewPassword);
+
+  if (manualEntries.length > 0) {
+    dom.workflowNotice.hidden = false;
+    dom.workflowNotice.dataset.variant = 'warning';
+    dom.workflowNoticeEyebrow.textContent = 'Manual Handoff';
+    dom.workflowNoticeTitle.textContent = '手動対応が必要なアカウントがあります';
+    dom.workflowNoticeText.textContent =
+      '自動変更できなかったサイトはブラウザで変更し、完了後に開いたタブを閉じてください。新しいパスワードは保持されたままなので、そのまま再確認できます。';
+    dom.workflowNoticeList.innerHTML = manualEntries
+      .map((entry) => `
+        <div class="workflow-notice__item">
+          <span class="workflow-notice__item-name">${escapeHtml(entry.name || entry.domain || entry.url)}</span>
+          <span class="workflow-notice__item-meta">${escapeHtml(entry.errorMessage || '手動対応待ち')}</span>
+        </div>
+      `)
+      .join('');
+    return;
+  }
+
+  if (readyEntries.length > 0) {
+    const manualCandidates = readyEntries.filter((entry) => !entry.hasRecipe).length;
+    dom.workflowNotice.hidden = false;
+    dom.workflowNotice.dataset.variant = 'info';
+    dom.workflowNoticeEyebrow.textContent = 'Before Execute';
+    dom.workflowNoticeTitle.textContent = '一括変更の前に確認';
+    dom.workflowNoticeText.textContent = manualCandidates > 0
+      ? `変更対象のうち ${manualCandidates}件はレシピ未登録です。自動化できない場合はブラウザのタブが開いたまま待機するので、手動で変更してからタブを閉じてください。`
+      : 'レシピがあるサイトはそのまま自動変更されます。ブラウザ操作が始まったら、ログインや2FAが必要な場面だけ補助してください。';
+    dom.workflowNoticeList.innerHTML = '';
+    return;
+  }
+
+  dom.workflowNotice.hidden = true;
+  dom.workflowNoticeList.innerHTML = '';
+}
+
 function renderBreachBadge(entry) {
   switch (entry.breachStatus) {
     case 'compromised':
@@ -348,7 +418,7 @@ function renderStatusBadge(entry) {
     case 'failed':
       return `<span class="badge badge--failed" title="${escapeHtml(entry.errorMessage || '')}">❌ 失敗</span>`;
     case 'skipped':
-      return '<span class="badge badge--unchecked">⏭ スキップ</span>';
+      return `<span class="badge badge--manual" title="${escapeHtml(entry.errorMessage || '')}">🖐️ 手動対応</span>`;
     default:
       return '<span class="badge badge--pending">⏳ 待機中</span>';
   }
@@ -385,6 +455,7 @@ async function regeneratePassword(entryId) {
     if (entriesRes.ok) {
       state.entries = entriesData.entries;
       renderTable();
+      renderWorkflowNotice();
     }
 
     showToast('🎲 新しいパスワードを生成しました', 'success');
@@ -400,6 +471,30 @@ function showModal(title, text) {
   dom.progressFill.style.width = '0%';
   dom.progressLog.innerHTML = '';
   dom.modalProgress.hidden = false;
+}
+
+function showExecutionModal(manualCandidates) {
+  showModal(
+    'パスワード変更中...',
+    manualCandidates > 0
+      ? 'ブラウザを起動しています。自動化できないサイトは手動対応へ切り替わります。'
+      : 'ブラウザを起動して自動操作します...'
+  );
+
+  const messages = [
+    '自動変更を開始しています。',
+    'ログインや2FAが必要な場合は、開いたブラウザで補助してください。',
+  ];
+
+  if (manualCandidates > 0) {
+    messages.push(
+      `レシピ未登録の ${manualCandidates}件は、手動で変更後にタブを閉じると続行します。`
+    );
+  }
+
+  dom.progressLog.innerHTML = messages
+    .map((message) => `<p>${escapeHtml(message)}</p>`)
+    .join('');
 }
 
 function hideModal() {
