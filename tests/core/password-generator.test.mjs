@@ -46,7 +46,7 @@ test('generatePassword throws when no characters are available', () => {
 
 test('evaluatePasswordStrength scores weak and strong passwords differently', () => {
   const weak = evaluatePasswordStrength('aaa');
-  const strong = evaluatePasswordStrength('AbCdEfGh!2345678ijklMNOP');
+  const strong = evaluatePasswordStrength('Test1234!@#$abcdEFGHtest');
 
   assert.equal(weak.level, 'very-weak');
   assert.equal(weak.feedback.includes('8文字以上を推奨します'), true);

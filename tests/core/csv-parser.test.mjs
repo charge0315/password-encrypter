@@ -10,8 +10,8 @@ import {
 test('parsePasswordCSV parses rows and initializes workflow fields', () => {
   const csv = [
     'Name,URL,Username,Password,Note',
-    'Example,https://www.example.com/settings,user@example.com,S3cret!,primary account',
-    'Amazon,https://amazon.co.jp/ap/signin,shopper@example.com,P@ssw0rd!,shopping',
+    'Example,https://www.example.com/settings,user@example.com,dummy-test-1234!,primary account',
+    'Amazon,https://amazon.co.jp/ap/signin,shopper@example.com,dummy-test-5678!,shopping',
   ].join('\n');
 
   const entries = parsePasswordCSV(csv);
@@ -35,7 +35,7 @@ test('parsePasswordCSV parses rows and initializes workflow fields', () => {
         name: 'Example',
         url: 'https://www.example.com/settings',
         username: 'user@example.com',
-        password: 'S3cret!',
+        password: 'dummy-test-1234!',
         note: 'primary account',
         breachStatus: 'unchecked',
         changeStatus: 'pending',
@@ -44,7 +44,7 @@ test('parsePasswordCSV parses rows and initializes workflow fields', () => {
         name: 'Amazon',
         url: 'https://amazon.co.jp/ap/signin',
         username: 'shopper@example.com',
-        password: 'P@ssw0rd!',
+        password: 'dummy-test-5678!',
         note: 'shopping',
         breachStatus: 'unchecked',
         changeStatus: 'pending',
