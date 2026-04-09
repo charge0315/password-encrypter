@@ -2,6 +2,7 @@
 node_modules/
 dist/
 coverage/
+tests/.tmp/
 
 # Local environment files
 .env

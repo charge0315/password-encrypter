@@ -1,6 +1,6 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { access, mkdir } from 'node:fs/promises';
-import { RecipeEngine, type SiteRecipe } from './recipe-engine.js';
+import { RecipeEngine } from './recipe-engine.js';
 import { analyzePageForPasswordChange } from './ai-analyzer.js';
 
 export interface BrowserAgentOptions {
@@ -20,6 +20,16 @@ export interface PasswordChangeResult {
   error?: string;
   screenshots: string[];
   timestamp: string;
+}
+
+export interface ChangePasswordParams {
+  entryId: string;
+  url: string;
+  domain: string;
+  username: string;
+  oldPassword: string;
+  newPassword: string;
+  geminiApiKey?: string;
 }
 
 /**
@@ -90,17 +100,10 @@ export class BrowserAgent {
    * 1. レシピがある場合 → レシピに従って自動操作
    * 2. レシピがない場合 → AI がページを解析して操作
    */
-  async changePassword(params: {
-    entryId: string;
-    url: string;
-    domain: string;
-    username: string;
-    oldPassword: string;
-    newPassword: string;
-    geminiApiKey?: string;
-  }): Promise<PasswordChangeResult> {
+  async changePassword(params: ChangePasswordParams): Promise<PasswordChangeResult> {
     const { entryId, url, domain, username, oldPassword, newPassword, geminiApiKey } = params;
     const page = await this.newPage();
+    let method: PasswordChangeResult['method'] = 'recipe';
 
     const variables = {
       old_password: oldPassword,
@@ -114,6 +117,7 @@ export class BrowserAgent {
 
       if (recipe) {
         // レシピモード
+        method = 'recipe';
         console.log(`📝 [${domain}] レシピモードで実行`);
         const result = await this.recipeEngine.executeRecipe(page, recipe, variables);
 
@@ -128,6 +132,7 @@ export class BrowserAgent {
         };
       } else if (geminiApiKey) {
         // AI解析モード
+        method = 'ai';
         console.log(`🤖 [${domain}] AI解析モードで実行`);
         const result = await this.executeWithAI(page, {
           url,
@@ -163,15 +168,21 @@ export class BrowserAgent {
         };
       } else {
         // マニュアルモード — ページを表示してユーザーに操作を委ねる
+        method = 'manual';
         console.log(`👤 [${domain}] マニュアルモード（AI APIキー未設定）`);
         await page.goto(url, { waitUntil: 'domcontentloaded' });
+        await page.bringToFront();
+        console.log(
+          `   ${domain} の変更画面を開きました。手動で変更し、タブを閉じると次へ進みます。`
+        );
+        await page.waitForEvent('close');
 
         return {
           entryId,
           domain,
           success: false,
           method: 'manual',
-          error: 'AI APIキーが設定されていないため、手動操作が必要です',
+          error: '手動対応に切り替えました。変更後にタブを閉じると続行します。',
           screenshots: [],
           timestamp: new Date().toISOString(),
         };
@@ -181,13 +192,15 @@ export class BrowserAgent {
         entryId,
         domain,
         success: false,
-        method: 'recipe',
+        method,
         error: error.message || String(error),
         screenshots: [],
         timestamp: new Date().toISOString(),
       };
     } finally {
-      await page.close();
+      if (!page.isClosed()) {
+        await page.close();
+      }
     }
   }
 

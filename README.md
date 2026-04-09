@@ -17,8 +17,8 @@ Google Password Manager からエクスポートした CSV を読み込み、漏
 - 実パスワードを含む CSV を扱うため、ローカル環境での利用を前提にしてください。
 - CAPTCHA、2FA、再認証、UI変更などにより、自動変更は途中で人の介入が必要になることがあります。
 - Web API はパスワードをマスクして返しますが、サーバープロセス内では平文のパスワードを扱います。
-- `GEMINI_API_KEY` が未設定で、かつ対応レシピがないサイトでは自動変更できず、手動対応前提になります。
-- Vitest の設定はありますが、現時点ではテストファイルは同梱されていません。`npm test` はテスト未検出で終了します。
+- `GEMINI_API_KEY` が未設定で、かつ対応レシピがないサイトでは対象ページを開いて手動対応へ切り替えます。手動作業後にタブを閉じると処理が続行します。
+- ユニットテストは Node.js 標準テストランナーで実行します。`npm test` は事前に `npm run build` を実行してからテストを走らせます。
 
 ## セットアップ
 
@@ -103,7 +103,7 @@ CLI では対話形式で次を順に確認しながら進めます。
 | `GET` | `/api/entries` | 現在のエントリ一覧と集計を返す |
 | `POST` | `/api/check-breaches` | 全エントリの漏洩チェックを実行 |
 | `POST` | `/api/generate-passwords` | 一括で新しいパスワードを生成 |
-| `POST` | `/api/generate-password` | 単一エントリ向けにパスワードを生成 |
+| `POST` | `/api/generate-password` | 単一エントリ向けに新しいパスワードを生成して保持 |
 | `POST` | `/api/execute-changes` | 指定エントリのパスワード変更を実行 |
 | `GET` | `/api/export-csv` | 更新済み CSV をダウンロード |
 | `POST` | `/api/check-strength` | パスワード強度を評価 |
@@ -112,7 +112,7 @@ CLI では対話形式で次を順に確認しながら進めます。
 
 補足:
 
-- `/api/entries` などのレスポンスでは、実パスワードの代わりにマスク済みの値を返します。
+- `/api/entries` や `/api/generate-password` などのレスポンスでは、実パスワードの代わりにマスク済みの値を返します。
 - Web UI は単一の `Orchestrator` インスタンスを共有する簡易構成です。
 
 ## レシピの扱い
@@ -127,7 +127,7 @@ CLI では対話形式で次を順に確認しながら進めます。
 レシピが見つからない場合の挙動:
 
 - `GEMINI_API_KEY` がある場合は Gemini でページを解析して操作を試みます
-- API キーがない場合はページを開いた上で手動対応が必要になります
+- API キーがない場合はページを開いたまま待機し、手動対応後にタブを閉じると次の処理へ進みます
 
 ## ディレクトリ構成
 
@@ -156,8 +156,8 @@ password-encrypter/
 | `npm run dev` | Web サーバーを起動 |
 | `npm run cli -- <csv>` | CLI を起動 |
 | `npm run build` | TypeScript をビルド |
-| `npm run test` | Vitest を実行 |
-| `npm run test:watch` | Vitest を監視モードで実行 |
+| `npm run test` | ビルド後にユニットテストを実行 |
+| `npm run test:watch` | ビルド後にユニットテストを watch モードで実行 |
 
 主要ファイル:
 

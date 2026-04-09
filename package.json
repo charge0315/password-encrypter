@@ -7,8 +7,8 @@
     "dev": "tsx src/server.ts",
     "cli": "tsx src/index.ts",
     "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "npm run build && node --test --experimental-test-isolation=none tests/core/csv-parser.test.mjs tests/core/password-generator.test.mjs tests/core/crypto-store.test.mjs tests/agent/orchestrator.test.mjs",
+    "test:watch": "npm run build && node --test --watch --experimental-test-isolation=none tests/core/csv-parser.test.mjs tests/core/password-generator.test.mjs tests/core/crypto-store.test.mjs tests/agent/orchestrator.test.mjs"
   },
   "dependencies": {
     "csv-parse": "^5.6.0",

@@ -1,8 +1,12 @@
 import { type PasswordEntry } from '../core/csv-parser.js';
 import { generatePassword, type PasswordOptions } from '../core/password-generator.js';
-import { checkPasswordsBatch, type BreachCheckResult } from '../core/password-checker.js';
+import { checkPasswordsBatch } from '../core/password-checker.js';
 import { CryptoStore } from '../core/crypto-store.js';
-import { BrowserAgent, type PasswordChangeResult } from './browser-agent.js';
+import {
+  BrowserAgent,
+  type ChangePasswordParams,
+  type PasswordChangeResult,
+} from './browser-agent.js';
 import { RecipeEngine, type SiteRecipe } from './recipe-engine.js';
 import { extractDomain } from '../core/csv-parser.js';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -17,16 +21,23 @@ export type OrchestratorEvent =
   | { type: 'batch-complete'; results: PasswordChangeResult[] }
   | { type: 'error'; message: string };
 
+export interface BrowserAgentAdapter {
+  launch(): Promise<void>;
+  close(): Promise<void>;
+  changePassword(params: ChangePasswordParams): Promise<PasswordChangeResult>;
+}
+
 /**
  * オーケストレーター — エージェント全体の制御を担当
  */
 export class Orchestrator {
   private entries: PasswordEntry[] = [];
   private recipeEngine: RecipeEngine;
-  private browserAgent: BrowserAgent | null = null;
+  private browserAgent: BrowserAgentAdapter | null = null;
   private cryptoStore: CryptoStore | null = null;
   private eventListeners: ((event: OrchestratorEvent) => void)[] = [];
   private results: PasswordChangeResult[] = [];
+  private browserAgentFactory: (recipeEngine: RecipeEngine) => BrowserAgentAdapter;
 
   // 設定
   private config: {
@@ -35,6 +46,7 @@ export class Orchestrator {
     geminiApiKey?: string;
     recipesDir?: string;
     storePath?: string;
+    browserAgentFactory?: (recipeEngine: RecipeEngine) => BrowserAgentAdapter;
   };
 
   constructor(config: {
@@ -43,9 +55,13 @@ export class Orchestrator {
     geminiApiKey?: string;
     recipesDir?: string;
     storePath?: string;
+    browserAgentFactory?: (recipeEngine: RecipeEngine) => BrowserAgentAdapter;
   } = {}) {
     this.config = config;
     this.recipeEngine = new RecipeEngine();
+    this.browserAgentFactory =
+      config.browserAgentFactory ||
+      ((recipeEngine) => new BrowserAgent(recipeEngine, { headless: false }));
 
     // 暗号化ストレージの初期化
     if (config.masterPassword && config.storePath) {
@@ -176,8 +192,9 @@ export class Orchestrator {
     }
 
     // ブラウザエージェントを起動
-    this.browserAgent = new BrowserAgent(this.recipeEngine, { headless: false });
-    await this.browserAgent.launch();
+    const browserAgent = this.browserAgentFactory(this.recipeEngine);
+    this.browserAgent = browserAgent;
+    await browserAgent.launch();
 
     const results: PasswordChangeResult[] = [];
 
@@ -194,7 +211,7 @@ export class Orchestrator {
           domain,
         });
 
-        const result = await this.browserAgent.changePassword({
+        const result = await browserAgent.changePassword({
           entryId: entry.id,
           url: entry.url,
           domain,
@@ -204,8 +221,12 @@ export class Orchestrator {
           geminiApiKey: this.config.geminiApiKey,
         });
 
-        entry.changeStatus = result.success ? 'success' : 'failed';
         entry.errorMessage = result.error;
+        if (result.method === 'manual') {
+          entry.changeStatus = 'skipped';
+        } else {
+          entry.changeStatus = result.success ? 'success' : 'failed';
+        }
 
         // 成功した場合、古いパスワードを更新
         if (result.success) {
@@ -217,7 +238,7 @@ export class Orchestrator {
         this.emit({ type: 'password-change-complete', result });
       }
     } finally {
-      await this.browserAgent.close();
+      await browserAgent.close();
       this.browserAgent = null;
     }
 

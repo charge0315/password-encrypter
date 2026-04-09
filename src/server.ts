@@ -129,20 +129,29 @@ app.post('/api/generate-passwords', (req, res) => {
 app.post('/api/generate-password', (req, res) => {
   try {
     const { options, entryId } = req.body || {};
-    const password = generatePassword(options);
-    const strength = evaluatePasswordStrength(password);
-
-    if (entryId) {
-      const orch = getOrchestrator();
-      const entry = orch.getEntries().find((e) => e.id === entryId);
-      if (!entry) {
-        res.status(404).json({ error: '対象エントリが見つかりませんでした' });
-        return;
-      }
-      entry.newPassword = password;
+    if (!entryId) {
+      res.status(400).json({ error: 'entryId が必要です' });
+      return;
     }
 
-    res.json({ password, strength, entryId });
+    const orch = getOrchestrator();
+    const entry = orch.getEntries().find((e) => e.id === entryId);
+    if (!entry) {
+      res.status(404).json({ error: '対象エントリが見つかりませんでした' });
+      return;
+    }
+
+    const password = generatePassword(options);
+    const strength = evaluatePasswordStrength(password);
+    entry.newPassword = password;
+
+    res.json({
+      success: true,
+      entryId,
+      strength,
+      newPasswordMasked: '•'.repeat(Math.min(password.length, 16)),
+      newPasswordLength: password.length,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
