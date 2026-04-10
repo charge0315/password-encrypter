@@ -11,6 +11,8 @@ tests/.tmp/
 
 # Local data / secrets / exports
 data/
+recipes/
+playwright/.auth/
 *.encrypted
 *.csv
 

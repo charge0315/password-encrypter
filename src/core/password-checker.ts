@@ -17,7 +17,8 @@ export interface BreachCheckResult {
  */
 export async function checkPasswordBreach(
   password: string,
-  apiKey?: string
+  apiKey?: string,
+  userAgent?: string
 ): Promise<BreachCheckResult> {
   // SHA-1 ハッシュを計算
   const sha1 = createHash('sha1').update(password).digest('hex').toUpperCase();
@@ -26,7 +27,7 @@ export async function checkPasswordBreach(
 
   // API にプレフィックスのみ送信
   const headers: Record<string, string> = {
-    'User-Agent': 'PasswordAutoChangeAgent/1.0',
+    'User-Agent': userAgent || 'password-auto-change-agent/1.0',
   };
   if (apiKey) {
     headers['hibp-api-key'] = apiKey;
@@ -66,18 +67,19 @@ export async function checkPasswordsBatch(
   passwords: { id: string; password: string }[],
   options: {
     apiKey?: string;
+    userAgent?: string;
     delayMs?: number;
     onProgress?: (completed: number, total: number) => void;
   } = {}
 ): Promise<Map<string, BreachCheckResult>> {
-  const { apiKey, delayMs = 200, onProgress } = options;
+  const { apiKey, userAgent, delayMs = 200, onProgress } = options;
   const results = new Map<string, BreachCheckResult>();
 
   for (let i = 0; i < passwords.length; i++) {
     const { id, password } = passwords[i];
 
     try {
-      const result = await checkPasswordBreach(password, apiKey);
+      const result = await checkPasswordBreach(password, apiKey, userAgent);
       results.set(id, result);
     } catch (error) {
       console.error(`漏洩チェックエラー (entry ${id}):`, error);

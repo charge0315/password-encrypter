@@ -37,6 +37,7 @@ function getOrchestrator(): Orchestrator {
   if (!orchestrator) {
     orchestrator = new Orchestrator({
       hibpApiKey: process.env.HIBP_API_KEY,
+      hibpUserAgent: process.env.HIBP_USER_AGENT,
       geminiApiKey: process.env.GEMINI_API_KEY,
       masterPassword: process.env.MASTER_PASSWORD,
       storePath: join(DATA_DIR, 'store.encrypted'),
@@ -270,6 +271,13 @@ app.listen(PORT, HOST, () => {
   console.log('🔐 Password Auto-Change Agent');
   console.log(`   http://${HOST}:${PORT}`);
   console.log('');
+  
+  if (HOST !== 'localhost' && HOST !== '127.0.0.1') {
+    console.warn('\n⚠️ [WARNING] ローカル環境以外での起動が検出されました。');
+    console.warn('   機密情報（平文パスワードや認証状態等）を扱うため、');
+    console.warn('   インターネット等への外部公開は非常に危険です。十分にご注意ください。\n');
+  }
+
   console.log('📋 使い方:');
   console.log('   1. Google Password Manager から CSV をエクスポート');
   console.log('   2. ブラウザで上記URLを開く');

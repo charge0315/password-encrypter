@@ -169,12 +169,22 @@ export class BrowserAgent {
       } else {
         // マニュアルモード — ページを表示してユーザーに操作を委ねる
         method = 'manual';
-        console.log(`👤 [${domain}] マニュアルモード（AI APIキー未設定）`);
+        console.log(`\n======================================================`);
+        console.log(`👤 [マニュアル操作要求] ${domain}`);
+        console.log(`======================================================`);
+        console.log(`   ・AI APIキー未設定、または対象サイトのレシピが存在しません。`);
+        console.log(`   ・自動操作を行うとセキュリティ保護（BANやロック）の恐れがあるため手動に切り替わりました。`);
+        console.log(`\n👉 【お願い】`);
+        console.log(`   開かれたブラウザウィンドウで以下の作業をお願いします:`);
+        console.log(`   ユーザーID: ${username}`);
+        console.log(`   古いパスワード: ${oldPassword}`);
+        console.log(`   新しいパスワード: ${newPassword}`);
+        console.log(`\n   変更が完了したら、作業中のブラウザタブを閉じてください。`);
+        console.log(`   タブを閉じると次のプログラム（エントリ）の処理が再開されます。`);
+        console.log(`======================================================\n`);
+
         await page.goto(url, { waitUntil: 'domcontentloaded' });
         await page.bringToFront();
-        console.log(
-          `   ${domain} の変更画面を開きました。手動で変更し、タブを閉じると次へ進みます。`
-        );
         await page.waitForEvent('close');
 
         return {
@@ -334,7 +344,8 @@ export class BrowserAgent {
       // 変更完了の確認を待つ
       await page.waitForTimeout(3000);
 
-      const screenshotPath = `data/screenshots/ai-result-${params.domain.replace(/[^a-zA-Z0-9]/g,'_')}-${Date.now()}.png`;
+      const randomId = Math.random().toString(36).substring(2, 10);
+      const screenshotPath = `data/screenshots/ai-result-${Date.now()}-${randomId}.png`;
       try {
         await this.ensureScreenshotDir();
         await page.screenshot({ path: screenshotPath });

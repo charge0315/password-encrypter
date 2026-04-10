@@ -44,6 +44,7 @@ export class Orchestrator {
   private config: {
     masterPassword?: string;
     hibpApiKey?: string;
+    hibpUserAgent?: string;
     geminiApiKey?: string;
     recipesDir?: string;
     storePath?: string;
@@ -53,6 +54,7 @@ export class Orchestrator {
   constructor(config: {
     masterPassword?: string;
     hibpApiKey?: string;
+    hibpUserAgent?: string;
     geminiApiKey?: string;
     recipesDir?: string;
     storePath?: string;
@@ -117,6 +119,7 @@ export class Orchestrator {
 
     const results = await checkPasswordsBatch(passwords, {
       apiKey: this.config.hibpApiKey,
+      userAgent: this.config.hibpUserAgent,
       onProgress: (completed, total) => {
         this.emit({ type: 'breach-check-progress', completed, total });
       },

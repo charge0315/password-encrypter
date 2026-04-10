@@ -75,11 +75,9 @@ test('entriesToCSV exports newPassword when it is available', () => {
 
   assert.deepEqual(rows, [
     {
-      name: 'Example',
       url: 'https://example.com',
       username: 'user@example.com',
       password: 'new-password',
-      note: 'rotated',
     },
   ]);
 });

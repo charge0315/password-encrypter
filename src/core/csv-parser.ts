@@ -58,16 +58,14 @@ export function parsePasswordCSVFile(filePath: string): PasswordEntry[] {
  */
 export function entriesToCSV(entries: PasswordEntry[]): string {
   const data = entries.map((entry) => ({
-    name: entry.name,
     url: entry.url,
     username: entry.username,
     password: entry.newPassword || entry.password,
-    note: entry.note,
   }));
 
   return stringify(data, {
     header: true,
-    columns: ['name', 'url', 'username', 'password', 'note'],
+    columns: ['url', 'username', 'password'],
   });
 }
 
